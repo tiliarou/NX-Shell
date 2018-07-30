@@ -1,3 +1,5 @@
+#include <dirent.h>
+
 #include <switch.h>
 
 #include "common.h"
@@ -11,47 +13,29 @@ static char album[512][512];
 static int count = 0, selection = 0;
 static SDL_Texture *image = NULL;
 static int width = 0, height = 0;
+static float scale_factor = 0.0f;
 
-static Result Gallery_GetImageList(void)
+static void Gallery_GetImageList(void)
 {
-	FsDir dir;
-	Result ret = 0;
-	
-	if (R_SUCCEEDED(ret = fsFsOpenDirectory(&fs, cwd, FS_DIROPEN_DIRECTORY | FS_DIROPEN_FILE, &dir)))
-	{
-		u64 entryCount = 0;
-		if (R_FAILED(ret = fsDirGetEntryCount(&dir, &entryCount)))
-			return ret;
-		
-		FsDirectoryEntry *entries = (FsDirectoryEntry*)calloc(entryCount + 1, sizeof(FsDirectoryEntry));
-		
-		if (R_SUCCEEDED(ret = fsDirRead(&dir, 0, NULL, entryCount, entries)))
-		{
-			qsort(entries, entryCount, sizeof(FsDirectoryEntry), Utils_Alphasort);
+	DIR *dir;
+	struct dirent *entries;
+	dir = opendir(cwd);
 
-			for (u32 i = 0; i < entryCount; i++) 
+	if (dir != NULL)
+	{
+		while ((entries = readdir (dir)) != NULL) 
+		{
+			if ((strncasecmp(FS_GetFileExt(entries->d_name), "png", 3) == 0) || (strncasecmp(FS_GetFileExt(entries->d_name), "jpg", 3) == 0) 
+				|| (strncasecmp(FS_GetFileExt(entries->d_name), "bmp", 3) == 0) || (strncasecmp(FS_GetFileExt(entries->d_name), "gif", 3) == 0))
 			{
-				int length = strlen(entries[i].name);
-				if ((strncasecmp(FS_GetFileExt(entries[i].name), "png", 3) == 0) || (strncasecmp(FS_GetFileExt(entries[i].name), "jpg", 3) == 0) || 
-					(strncasecmp(FS_GetFileExt(entries[i].name), "bmp", 3) == 0) || (strncasecmp(FS_GetFileExt(entries[i].name), "gif", 3) == 0))
-				{
-					strcpy(album[count], cwd);
-					strcpy(album[count] + strlen(album[count]), entries[i].name);
-					count++;
-				}
+				strcpy(album[count], cwd);
+				strcpy(album[count] + strlen(album[count]), entries->d_name);
+				count++;
 			}
 		}
-		else
-		{
-			free(entries);
-			return ret;
-		}
-		
-		free(entries);
-		fsDirClose(&dir); // Close directory
+
+		closedir(dir);
 	}
-	else
-		return ret;
 }
 
 static int Gallery_GetCurrentIndex(char *path)
@@ -74,8 +58,6 @@ static void Gallery_HandleNext(bool forward)
 	Utils_SetMin(&selection, (count - 1), 0);
 
 	SDL_DestroyTexture(image);
-
-	Gallery_GetImageList();
 	selection = Gallery_GetCurrentIndex(album[selection]);
 
 	SDL_LoadImage(RENDERER, &image, album[selection]);
@@ -84,12 +66,10 @@ static void Gallery_HandleNext(bool forward)
 
 void Gallery_DisplayImage(char *path)
 {
-	SDL_LoadImage(RENDERER, &image, path);
-
-	SDL_QueryTexture(image, NULL, NULL, &width, &height);
-
 	Gallery_GetImageList();
 	selection = Gallery_GetCurrentIndex(path);
+	SDL_LoadImage(RENDERER, &image, path);
+	SDL_QueryTexture(image, NULL, NULL, &width, &height);
 	
 	TouchInfo touchInfo;
 	Touch_Init(&touchInfo);
@@ -98,7 +78,17 @@ void Gallery_DisplayImage(char *path)
 	{
 		SDL_ClearScreen(RENDERER, SDL_MakeColour(33, 39, 43, 255));
 		SDL_RenderClear(RENDERER);
-		SDL_DrawImageScale(RENDERER, image, (1280 - width) / 2, (720 - height) / 2, width, height);
+
+		if (height <= 720)
+			SDL_DrawImageScale(RENDERER, image, (1280 - width) / 2, (720 - height) / 2, width, height);
+		else if (height > 720)
+		{
+			scale_factor = (720.0f / (float)height);
+			width = width * scale_factor;
+			height = height * scale_factor;
+			SDL_DrawImageScale(RENDERER, image, (float)((1280.0f - width) / 2.0f), (float)((720.0f - height) / 2.0f), 
+				(float)width, (float)height);
+		}
 
 		hidScanInput();
 		Touch_Process(&touchInfo);

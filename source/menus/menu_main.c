@@ -14,7 +14,7 @@
 #include "utils.h"
 
 #define MENUBAR_X_BOUNDARY  0
-static int menubar_x = -400;
+static float menubar_x = -400.0;
 static char multi_select_dir_old[256];
 
 static void Menu_ControlMenuBar(u64 input)
@@ -105,8 +105,19 @@ static void Menu_ControlHome(u64 input)
 		else if (input & KEY_DDOWN)
 			position++;
 
-		Utils_SetMax(&position, 0, (fileCount - 1));
-		Utils_SetMin(&position, (fileCount - 1), 0);
+		if (hidKeysHeld(CONTROLLER_P1_AUTO) & KEY_RSTICK_UP)
+		{
+			wait(5);
+			position--;
+		}
+		else if (hidKeysHeld(CONTROLLER_P1_AUTO) & KEY_RSTICK_DOWN)
+		{
+			wait(5);
+			position++;
+		}
+
+		Utils_SetMax(&position, 0, ((strcmp(cwd, ROOT_PATH) == 0? (fileCount - 1) : fileCount)));
+		Utils_SetMin(&position, ((strcmp(cwd, ROOT_PATH) == 0? (fileCount - 1) : fileCount)), 0);
 
 		if (input & KEY_LEFT)
 			position = 0;
@@ -133,7 +144,7 @@ static void Menu_ControlHome(u64 input)
 		else if ((strcmp(cwd, ROOT_PATH) != 0) && (input & KEY_B))
 		{
 			wait(5);
-			Dirbrowse_Navigate(-1);
+			Dirbrowse_Navigate(true);
 			Dirbrowse_PopulateFiles(true);
 		}
 	}
@@ -145,7 +156,7 @@ static void Menu_TouchHome(TouchInfo touchInfo)
 		initialPosition = (position == 0) ? 7 : position;
 	else if (touchInfo.state == TouchMoving && touchInfo.tapType == TapNone && tapped_inside(touchInfo, 0, 140, 1280, 720))
 	{
-		int lastPosition = position = fileCount - 1;
+		int lastPosition = ((strcmp(cwd, ROOT_PATH) == 0? (fileCount - 1) : fileCount));
 		if (lastPosition < 8)
 			return;
 		position = initialPosition + floor(((double) touchInfo.firstTouch.py - (double) touchInfo.prevTouch.py) / 73);
@@ -246,7 +257,7 @@ void Menu_Main(void)
 		{
 			Menu_DisplayMenuBar();
 
-			menubar_x += 35;
+			menubar_x += 35.0;
 
 			if (menubar_x > -1)
 				menubar_x = MENUBAR_X_BOUNDARY;

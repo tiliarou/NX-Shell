@@ -14,6 +14,27 @@ static bool displayAbout;
 static int confirm_width = 0, confirm_height = 0;
 static int dialog_width = 0, dialog_height = 0;
 
+static void Save_SortConfig(int selection)
+{
+	switch (selection)
+	{
+		case 0:
+			config_sort_by = 0;
+			break;
+		case 1:
+			config_sort_by = 1;
+			break;
+		case 2:
+			config_sort_by = 2;
+			break;
+		case 3:
+			config_sort_by = 3;
+			break;
+	}
+
+	Config_Save(config_dark_theme, config_sort_by);
+}
+
 static void Menu_DisplaySortSettings(void)
 {
 	int selection = 0, max_items = 3, height = 0;
@@ -95,25 +116,7 @@ static void Menu_DisplaySortSettings(void)
 		Utils_SetMin(&selection, max_items, 0);
 
 		if (kDown & KEY_A)
-		{
-			switch (selection)
-			{
-				case 0:
-					config_sort_by = 0;
-					break;
-				case 1:
-					config_sort_by = 1;
-					break;
-				case 2:
-					config_sort_by = 2;
-					break;
-				case 3:
-					config_sort_by = 3;
-					break;
-			}
-
-			Config_Save(config_dark_theme, config_sort_by);
-		}
+			Save_SortConfig(selection);
 
 		if (touchInfo.state == TouchStart)
 		{
@@ -129,24 +132,7 @@ static void Menu_DisplaySortSettings(void)
 			else if (touchInfo.firstTouch.py >= 140)
 			{
 				int tapped_selection = floor(((double) touchInfo.firstTouch.py - 140) / 73);
-
-				switch (tapped_selection)
-				{
-					case 0:
-						config_sort_by = 0;
-						break;
-					case 1:
-						config_sort_by = 1;
-						break;
-					case 2:
-						config_sort_by = 2;
-						break;
-					case 3:
-						config_sort_by = 3;
-						break;
-				}
-
-				Config_Save(config_dark_theme, config_sort_by);
+				Save_SortConfig(tapped_selection);
 			}
 		}
 	}

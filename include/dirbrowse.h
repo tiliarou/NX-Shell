@@ -9,7 +9,7 @@ typedef struct File
 	int isDir;          // Folder flag
 	int isReadOnly;     // Read-only flag
 	int isHidden;       // Hidden file flag
-	u8 name[256];       // File name
+	char name[256];       // File name
 	char ext[4];        // File extension
 	u64 size;           // File size
 } File;
@@ -27,7 +27,7 @@ char multi_select_dir[512];       // Holds the current dir where multi-select ha
 char multi_select_paths[256][512]; // Holds the file paths of those in the clipboard.
 
 void Dirbrowse_RecursiveFree(File *node);
-void Dirbrowse_PopulateFiles(bool clear);
+Result Dirbrowse_PopulateFiles(bool clear);
 void Dirbrowse_DisplayFiles(void);
 File *Dirbrowse_GetFileIndex(int index);
 void Dirbrowse_OpenFile(void);

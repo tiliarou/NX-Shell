@@ -20,8 +20,8 @@ Work in progress port of 3DShell (Multi purpose file manager) to the Nintendo Sw
 # Build instructions
 
 ```bash
-git clone https://github.com/joel16/NX-Shell.git
-cd NX-Shell/ && git submodule update --init --recursive
+git clone --recursive https://github.com/joel16/NX-Shell.git
+cd NX-Shell/ && git submodule foreach git pull origin master
 cd mupdf/ && make generate
 cd ../ && make
 ```
@@ -31,3 +31,4 @@ cd ../ && make
 - **Preetisketch** for some of the assets used as well as the banner.
 - **StevenMattera** for the implementing the foundation of all touch-screen code.
 - **rock88** for integrating mupdf, allowing NX-Shell to read pdfs and other epubs.
+- **grimfang4** for the original SDL_FontCache headers and **BernardoGiordano** for the port to switch.

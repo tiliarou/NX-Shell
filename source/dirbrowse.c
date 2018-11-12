@@ -3,9 +3,9 @@
 #include "config.h"
 #include "dirbrowse.h"
 #include "fs.h"
+#include "menu_book_reader.h"
 #include "menu_gallery.h"
 #include "menu_music.h"
-#include "menu_book_reader.h"
 #include "SDL_helper.h"
 #include "textures.h"
 #include "utils.h"
@@ -67,7 +67,7 @@ Result Dirbrowse_PopulateFiles(bool clear) {
 	FsDir dir;
 	Result ret = 0;
 
-	if (R_SUCCEEDED(ret = fsFsOpenDirectory(&fs, cwd, FS_DIROPEN_DIRECTORY | FS_DIROPEN_FILE, &dir))) {
+	if (R_SUCCEEDED(ret = FS_OpenDirectory(cwd, FS_DIROPEN_DIRECTORY | FS_DIROPEN_FILE, &dir))) {
 		/* Add fake ".." entry except on root */
 		if (strcmp(cwd, ROOT_PATH)) {
 			files = (File *)malloc(sizeof(File)); // New list
@@ -78,12 +78,12 @@ Result Dirbrowse_PopulateFiles(bool clear) {
 		}
 		
 		u64 entryCount = 0;
-		if (R_FAILED(ret = fsDirGetEntryCount(&dir, &entryCount)))
+		if (R_FAILED(ret = FS_GetDirEntryCount(&dir, &entryCount)))
 			return ret;
 		
 		FsDirectoryEntry *entries = (FsDirectoryEntry*)calloc(entryCount + 1, sizeof(FsDirectoryEntry));
 
-		if (R_SUCCEEDED(ret = fsDirRead(&dir, 0, NULL, entryCount, entries))) {
+		if (R_SUCCEEDED(ret = FS_ReadDir(&dir, 0, NULL, entryCount, entries))) {
 			qsort(entries, entryCount, sizeof(FsDirectoryEntry), cmpstringp);
 			
 			for (u32 i = 0; i < entryCount; i++) {		
@@ -145,9 +145,13 @@ void Dirbrowse_DisplayFiles(void) {
 	SDL_GetTextDimensions(30, cwd, NULL, &title_height);
 	SDL_DrawImage(icon_nav_drawer, 20, 58);
 	SDL_DrawImage(icon_actions, (1260 - 64), 58);
-	SDL_DrawText(170, 40 + ((100 - title_height) / 2), 30, WHITE, cwd);
-	SDL_DrawRect(170, 40 + ((100 - title_height) / 2) + title_height + 10, 940, 6, config.dark_theme? SELECTOR_COLOUR_DARK : FC_MakeColor(10, 73, 163, 255));
-	SDL_DrawRect(170, 40 + ((100 - title_height) / 2) + title_height + 10, (((double)used_storage/(double)total_storage) * 940.0), 6, config.dark_theme? TITLE_COLOUR_DARK : FC_MakeColor(49, 161, 224, 255));
+	SDL_DrawTextf(170, 40 + ((100 - title_height) / 2), 30, WHITE, "%.53s", cwd);
+
+	if ((BROWSE_STATE != STATE_PRODINFOF) || (BROWSE_STATE != STATE_SAFE)) {
+		SDL_DrawRect(170, 40 + ((100 - title_height) / 2) + title_height + 10, 940, 6, config.dark_theme? SELECTOR_COLOUR_DARK : FC_MakeColor(10, 73, 163, 255));
+		SDL_DrawRect(170, 40 + ((100 - title_height) / 2) + title_height + 10, (((double)used_storage/(double)total_storage) * 940.0), 6, config.dark_theme? 
+			TITLE_COLOUR_DARK : FC_MakeColor(49, 161, 224, 255));
+	}
 
 	int i = 0, printed = 0;
 	File *file = files; // Draw file list
@@ -218,8 +222,10 @@ void Dirbrowse_DisplayFiles(void) {
 static Result Dirbrowse_SaveLastDirectory(void) {
 	Result ret = 0;
 
-	if (R_FAILED(ret = FS_Write("/switch/NX-Shell/lastdir.txt", cwd)))
-		return ret;
+	if (BROWSE_STATE == STATE_SD) {
+		if (R_FAILED(ret = FS_Write("/switch/NX-Shell/lastdir.txt", cwd)))
+			return ret;
+	}
 
 	return 0;
 }
@@ -266,9 +272,6 @@ void Dirbrowse_OpenFile(void) {
 		Menu_PlayMusic(path);
 	else if ((!strncasecmp(file->ext, "pdf", 3)) || (!strncasecmp(file->ext, "cbz", 3)) || (!strncasecmp(file->ext, "fb2", 3)) || (!strncasecmp(file->ext, "epub", 4)))
 		Menu_OpenBook(path);
-
-	/*else if (!strncasecmp(file->ext, "txt", 3))
-		TextViewer_DisplayText(path);*/
 }
 
 // Navigate to Folder

@@ -1,7 +1,5 @@
 #include <dirent.h>
 
-#include <switch.h>
-
 #include "common.h"
 #include "fs.h"
 #include "menu_gallery.h"
@@ -19,14 +17,15 @@ static Result Gallery_GetImageList(void) {
 	FsDir dir;
 	Result ret = 0;
 	
-	if (R_SUCCEEDED(ret = fsFsOpenDirectory(&fs, cwd, FS_DIROPEN_DIRECTORY | FS_DIROPEN_FILE, &dir))) {
+	if (R_SUCCEEDED(ret = FS_OpenDirectory(cwd, FS_DIROPEN_DIRECTORY | FS_DIROPEN_FILE, &dir))) {
 		u64 entryCount = 0;
-		if (R_FAILED(ret = fsDirGetEntryCount(&dir, &entryCount)))
+
+		if (R_FAILED(ret = FS_GetDirEntryCount(&dir, &entryCount)))
 			return ret;
 		
 		FsDirectoryEntry *entries = (FsDirectoryEntry*)calloc(entryCount + 1, sizeof(FsDirectoryEntry));
 		
-		if (R_SUCCEEDED(ret = fsDirRead(&dir, 0, NULL, entryCount, entries))) {
+		if (R_SUCCEEDED(ret = FS_ReadDir(&dir, 0, NULL, entryCount, entries))) {
 			qsort(entries, entryCount, sizeof(FsDirectoryEntry), Utils_Alphasort);
 
 			for (u32 i = 0; i < entryCount; i++) {
@@ -155,6 +154,9 @@ void Gallery_DisplayImage(char *path) {
 		
 		if (kDown & KEY_B)
 			break;
+
+		if (kDown & KEY_PLUS)
+			longjmp(exitJmp, 1);
 	}
 
 	SDL_DestroyTexture(image);

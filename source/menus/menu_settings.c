@@ -97,6 +97,9 @@ static void Menu_DisplaySortSettings(void) {
 		Touch_Process(&touchInfo);
 		u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
 
+		if (kDown & KEY_PLUS)
+			longjmp(exitJmp, 1);
+
 		if (kDown & KEY_B)
 			break;
 
@@ -129,12 +132,10 @@ static void Menu_DisplaySortSettings(void) {
 	Dirbrowse_PopulateFiles(true);
 }
 
-static void Menu_ControlAboutDialog(u64 input) {
+static void Menu_ControlAboutDialog(u64 input, TouchInfo touchInfo) {
 	if ((input & KEY_A) || (input & KEY_B))
 		displayAbout = false;
-}
 
-static void Menu_TouchAboutDialog(TouchInfo touchInfo) {
 	if (touchInfo.state == TouchEnded && touchInfo.tapType != TapNone) {
 		// Touched outside
 		if (tapped_outside(touchInfo, (1280 - dialog_width) / 2, (720 - dialog_height) / 2, (1280 + dialog_width) / 2, (720 + dialog_height) / 2))
@@ -169,7 +170,7 @@ static void Menu_DisplayAboutDialog(void) {
 }
 
 void Menu_DisplaySettings(void) {
-	int selection = 0, max_items = 2;
+	int selection = 0, max_items = 3;
 	u32 height = 0;
 	TouchInfo touchInfo;
 	Touch_Init(&touchInfo);
@@ -180,6 +181,7 @@ void Menu_DisplaySettings(void) {
 	const char *main_menu_items[] = {
 		"Sorting options",
 		"Dark theme",
+		"Developer options",
 		"About"
 	};
 
@@ -212,6 +214,11 @@ void Menu_DisplaySettings(void) {
 					SDL_DrawImage(config.dark_theme? icon_toggle_dark_on : icon_toggle_off, 1180 - toggle_button_width, 213 + ((73 - toggle_button_height) / 2));
 				else
 					SDL_DrawImage(config.dark_theme? icon_toggle_on : icon_toggle_off, 1180 - toggle_button_width, 213 + ((73 - toggle_button_height) / 2));
+
+				if (config.dark_theme)
+					SDL_DrawImage(config.dev_options? icon_toggle_dark_on : icon_toggle_off, 1180 - toggle_button_width, 286 + ((73 - toggle_button_height) / 2));
+				else
+					SDL_DrawImage(config.dev_options? icon_toggle_on : icon_toggle_off, 1180 - toggle_button_width, 286 + ((73 - toggle_button_height) / 2));
 				
 				SDL_GetTextDimensions(25, main_menu_items[i], NULL, &height);
 				SDL_DrawText(40, 140 + ((73 - height)/2) + (73 * printed), 25, config.dark_theme? WHITE : BLACK, main_menu_items[i]);
@@ -229,10 +236,11 @@ void Menu_DisplaySettings(void) {
 		Touch_Process(&touchInfo);
 		u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
 
-		if (displayAbout) {
-			Menu_ControlAboutDialog(kDown);
-			Menu_TouchAboutDialog(touchInfo);
-		}
+		if (kDown & KEY_PLUS)
+			longjmp(exitJmp, 1);
+
+		if (displayAbout)
+			Menu_ControlAboutDialog(kDown, touchInfo);
 		else {
 			if (kDown & KEY_B)
 				break;
@@ -255,6 +263,10 @@ void Menu_DisplaySettings(void) {
 						Config_Save(config);
 						break;
 					case 2:
+						config.dev_options = !config.dev_options;
+						Config_Save(config);
+						break;
+					case 3:
 						displayAbout = true;
 						break;
 				}
@@ -281,6 +293,10 @@ void Menu_DisplaySettings(void) {
 							Config_Save(config);
 							break;
 						case 2:
+							config.dev_options = !config.dev_options;
+							Config_Save(config);
+							break;
+						case 3:
 							displayAbout = true;
 							break;
 					}

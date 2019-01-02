@@ -10,6 +10,10 @@ SDL_Renderer *SDL_GetMainRenderer(void) {
 	return RENDERER;
 }
 
+SDL_Window *SDL_GetMainWindow(void) {
+	return WINDOW;
+}
+
 static FC_Font *GetFont(int size) {
 	if (size == 20)
 		return Roboto_small;
@@ -28,14 +32,13 @@ Result SDL_HelperInit(void) {
 
 	SDL_Init(SDL_INIT_EVERYTHING);
 	WINDOW = SDL_CreateWindow("NX-Shell", 0, 0, 1280, 720, SDL_WINDOW_FULLSCREEN);
-	RENDERER = SDL_CreateRenderer(WINDOW, 0, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	RENDERER = SDL_CreateRenderer(WINDOW, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	SDL_SetRenderDrawBlendMode(RENDERER, SDL_BLENDMODE_BLEND);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
 
 	IMG_Init(IMG_INIT_PNG | IMG_INIT_JPG);
 
 	Mix_Init(MIX_INIT_FLAC | MIX_INIT_MOD | MIX_INIT_MP3 | MIX_INIT_OGG | MIX_INIT_MID);
-	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 4096);
 
 	if (R_FAILED(ret = plGetSharedFontByType(&fontData, PlSharedFontType_Standard)))
 		return ret;
@@ -65,7 +68,6 @@ void SDL_HelperTerm(void) {
 	FC_FreeFont(Roboto);
 	TTF_Quit();
 
-	Mix_CloseAudio();
 	Mix_Quit();
 
 	IMG_Quit();
@@ -119,8 +121,7 @@ void SDL_LoadImage(SDL_Texture **texture, char *path) {
 	loaded_surface = IMG_Load(path);
 
 	if (loaded_surface) {
-		Uint32 colorkey = SDL_MapRGB(loaded_surface->format, 0, 0, 0);
-		SDL_SetColorKey(loaded_surface, SDL_TRUE, colorkey);
+		SDL_ConvertSurfaceFormat(loaded_surface, SDL_PIXELFORMAT_RGBA8888, 0);
 		*texture = SDL_CreateTextureFromSurface(RENDERER, loaded_surface);
 	}
 

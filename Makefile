@@ -32,15 +32,15 @@ include $(DEVKITPRO)/libnx/switch_rules
 #---------------------------------------------------------------------------------
 TARGET        := $(notdir $(CURDIR))
 BUILD         := build
-SOURCES       := source source/audio source/menus source/minizip source/menus/menu_book_reader
+SOURCES       := source source/audio source/ftp source/gif source/menus source/minizip source/menus/menu_book_reader
 DATA          := data
-INCLUDES      := include include/audio include/menus include/minizip mupdf/include mupdf/source/fitz
+INCLUDES      := include include/audio include/ftp include/gif include/menus include/minizip mupdf/include mupdf/source/fitz
 EXEFS_SRC     := exefs_src
 ROMFS         := romfs
 
 VERSION_MAJOR := 1
-VERSION_MINOR := 0
-VERSION_MICRO := 5
+VERSION_MINOR := 1
+VERSION_MICRO := 0
 GITVERSION    := $(shell git log -1 --pretty='%h')
 
 APP_TITLE     := NX-Shell
@@ -65,11 +65,13 @@ CXXFLAGS := $(CFLAGS) -fno-rtti -fno-exceptions
 ASFLAGS  := -g $(ARCH)
 LDFLAGS  = -specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map) -L$(PWD)/$(BUILD)
 
-LIBS     := -lSDL2_ttf -lSDL2_image -lSDL2_mixer -lSDL2_gfx -lSDL2 \
-            -lpng -lminizip -lz -ljpeg \
-            -lvorbisidec -logg -lmpg123 -lmodplug \
+LIBS     := -lSDL2_ttf -lSDL2_image -lSDL2_mixer -lSDL2 -lSDL2_gfx \
+            -lpng  -ljpeg \
+            -lglad -lEGL -lglapi -ldrm_nouveau \
+            -lvorbisidec -logg -lmpg123 -lmodplug -lstdc++ \
+            -lglad -lEGL -lglapi -ldrm_nouveau \
             -lmupdf_core -lmupdf_thirdparty -lconfig \
-            -lfreetype -lbz2 -lEGL -lglapi -ldrm_nouveau -lnx \
+            -lnx -lm -lfreetype -lminizip -lz
 
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing

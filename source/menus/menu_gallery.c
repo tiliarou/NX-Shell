@@ -1,5 +1,4 @@
-#include <dirent.h>
-
+#include "CEV_gif.h"
 #include "common.h"
 #include "fs.h"
 #include "menu_gallery.h"
@@ -12,6 +11,7 @@ static int count = 0, selection = 0;
 static SDL_Texture *image = NULL;
 static int width = 0, height = 0;
 static float scale_factor = 0.0f;
+static int pos_x = 0, pos_y = 0;
 
 static Result Gallery_GetImageList(void) {
 	FsDir dir;
@@ -61,6 +61,9 @@ static int Gallery_GetCurrentIndex(char *path) {
 }
 
 static void Gallery_HandleNext(bool forward) {
+	pos_x = 0;
+	pos_y = 0;
+
 	if (forward)
 		selection++;
 	else
@@ -77,7 +80,7 @@ static void Gallery_HandleNext(bool forward) {
 }
 
 static void Gallery_DrawImage(int x, int y, int w, int h, float zoom_factor, SDL_Rect *clip, double angle, SDL_Point *center, SDL_RendererFlip flip) {
-	SDL_Rect position = { x, y, w * zoom_factor, h * zoom_factor};
+	SDL_Rect position = { x - (pos_x * zoom_factor - pos_x) / 2, y - (pos_y * zoom_factor - pos_y) / 2, w * zoom_factor, h * zoom_factor};
 
 	if (clip != NULL) {
 		position.w = clip->w;
@@ -85,6 +88,29 @@ static void Gallery_DrawImage(int x, int y, int w, int h, float zoom_factor, SDL
 	}
 
 	SDL_RenderCopyEx(SDL_GetMainRenderer(), image, clip, &position, angle, center, flip);
+}
+
+void Gallery_DisplayGif(char *path) {
+	SDL_RenderClear(SDL_GetMainRenderer());
+	CEV_GifAnim *animation = CEV_gifAnimLoad(path, SDL_GetMainRenderer());
+	SDL_Texture *texture = CEV_gifTexture(animation);
+	CEV_gifLoopMode(animation, GIF_REPEAT_FOR);
+
+	while(appletMainLoop()) {
+		hidScanInput();
+		u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
+
+		if (CEV_gifAnimAuto(animation)) {
+			SDL_RenderClear(SDL_GetMainRenderer());
+			SDL_RenderCopy(SDL_GetMainRenderer(), texture, NULL, NULL);
+			SDL_RenderPresent(SDL_GetMainRenderer());
+		}
+
+		if (kDown & KEY_B)
+			break;
+	}
+
+	CEV_gifAnimFree(animation);
 }
 
 void Gallery_DisplayImage(char *path) {
@@ -96,10 +122,13 @@ void Gallery_DisplayImage(char *path) {
 	TouchInfo touchInfo;
 	Touch_Init(&touchInfo);
 
-	u64 current_time = 0, last_time = 0;
+	u64 current_time = SDL_GetPerformanceCounter(), last_time = 0;
 	float zoom_factor = 1.0f;
 	double degrees = 0;
 	SDL_RendererFlip flip_type = SDL_FLIP_NONE;
+
+	pos_x = 0;
+	pos_y = 0;
 
 	while(appletMainLoop()) {
 		SDL_ClearScreen(FC_MakeColor(33, 39, 43, 255));
@@ -119,6 +148,8 @@ void Gallery_DisplayImage(char *path) {
 			(float)((720.0f - (height * zoom_factor)) / 2.0f), (float)width, (float)height, zoom_factor, NULL, degrees, NULL, flip_type);
 		}
 
+		//SDL_DrawTextf(0, 0, 30, WHITE, "x: %d, y: %d, zoom: %lf, degrees: %lf", pos_x, pos_y, zoom_factor, degrees);
+
 		hidScanInput();
 		Touch_Process(&touchInfo);
 		u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
@@ -135,17 +166,47 @@ void Gallery_DisplayImage(char *path) {
 			Gallery_HandleNext(true);
 		}
 
-		if ((kHeld & KEY_DUP) || (kHeld & KEY_LSTICK_UP)) {
+		if ((kHeld & KEY_DUP) || (kHeld & KEY_RSTICK_UP)) {
 			zoom_factor += 0.5f * (delta_time * 0.001);
 
 			if (zoom_factor > 2.0f)
 				zoom_factor = 2.0f;
 		}
-		else if ((kHeld & KEY_DDOWN) || (kHeld & KEY_LSTICK_DOWN)) {
+		else if ((kHeld & KEY_DDOWN) || (kHeld & KEY_RSTICK_DOWN)) {
 			zoom_factor -= 0.5f * (delta_time * 0.001);
 
 			if (zoom_factor < 0.5f)
 				zoom_factor = 0.5f;
+
+			if (zoom_factor <= 1.0f) {
+				pos_x = 0;
+				pos_y = 0;
+			}
+		}
+
+		if ((height * zoom_factor > 720) || (width * zoom_factor > 1280)) {
+			double velocity = 2 / zoom_factor;
+			if (kHeld & KEY_LSTICK_UP)
+				pos_y -= ((velocity * zoom_factor) * delta_time);
+			else if (kHeld & KEY_LSTICK_DOWN)
+				pos_y += ((velocity * zoom_factor) * delta_time);
+			else if (kHeld & KEY_LSTICK_LEFT)
+				pos_x -= ((velocity * zoom_factor) * delta_time);
+			else if (kHeld & KEY_LSTICK_RIGHT)
+				pos_x += ((velocity * zoom_factor) * delta_time);
+		}
+
+		if ((degrees == 0) || (degrees == 180)) {
+			Utils_SetMax(&pos_x, width, width);
+			Utils_SetMin(&pos_x, -width, -width);
+			Utils_SetMax(&pos_y, height, height);
+			Utils_SetMin(&pos_y, -height, -height);
+		}
+		else {
+			Utils_SetMax(&pos_x, height, height);
+			Utils_SetMin(&pos_x, -height, -height);
+			Utils_SetMax(&pos_y, width, width);
+			Utils_SetMin(&pos_y, -width, -width);
 		}
 
 		if (kDown & KEY_Y) {
@@ -161,10 +222,18 @@ void Gallery_DisplayImage(char *path) {
 				flip_type = SDL_FLIP_VERTICAL;
 		}
 
-		if (kDown & KEY_ZL)
+		if (kDown & KEY_ZL) {
 			degrees -= 90;
-		else if (kDown & KEY_ZR)
+
+			if (degrees < 0)
+				degrees = 270;
+		}
+		else if (kDown & KEY_ZR) {
 			degrees += 90;
+
+			if (degrees > 270)
+				degrees = 0;
+		}
 		
 		if (touchInfo.state == TouchEnded && touchInfo.tapType != TapNone) {
 			if (tapped_inside(touchInfo, 0, 0, 120, 720)) {

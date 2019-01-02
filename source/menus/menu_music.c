@@ -1,6 +1,3 @@
-#include <dirent.h>
-#include <time.h>
-
 #include "common.h"
 #include "dirbrowse.h"
 #include "fs.h"
@@ -82,21 +79,8 @@ static void Music_Play(char *path) {
 	if (audio == NULL)
 		return;
 
-	switch(Mix_GetMusicType(audio)) {
-		case MUS_CMD:
-			break;
-		case MUS_WAV:
-			break;
-		case MUS_MID:
-			break;
-		case MUS_MOD:
-		case MUS_OGG:
-		case MUS_MP3:
-			MP3_Init(path);
-			break;
-		case MUS_NONE:
-			break;
-	}
+	if (Mix_GetMusicType(audio) == MUS_MP3)
+		MP3_Init(path);
 
 	Result ret = 0;
 	if (R_FAILED(ret = Mix_PlayMusic(audio, 1))) {
@@ -128,11 +112,8 @@ static void Music_HandleNext(bool forward, int state) {
 	Utils_SetMax(&selection, 0, (count - 1));
 	Utils_SetMin(&selection, (count - 1), 0);
 
-	switch(Mix_GetMusicType(audio)) {
-		case MUS_MP3:
-			MP3_Exit();
-			break;
-	}
+	if (Mix_GetMusicType(audio) == MUS_MP3)
+		MP3_Exit();
 
 	Mix_HaltMusic();
 	Mix_FreeMusic(audio);
@@ -152,6 +133,7 @@ static void Music_HandlePause(bool *status) {
 }
 
 void Menu_PlayMusic(char *path) {
+	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, MIX_DEFAULT_CHANNELS, 4096);
 	Menu_GetMusicList();
 	Music_Play(path);
 
@@ -216,9 +198,6 @@ void Menu_PlayMusic(char *path) {
 		hidScanInput();
 		Touch_Process(&touchInfo);
 		u64 kDown = hidKeysDown(CONTROLLER_P1_AUTO);
-
-		if (kDown & KEY_PLUS)
-			longjmp(exitJmp, 1);
 
 		if (!Mix_PlayingMusic()) {
 			wait(1);
@@ -315,14 +294,12 @@ void Menu_PlayMusic(char *path) {
 		}
 	}
 
-	switch(Mix_GetMusicType(audio)) {
-		case MUS_MP3:
-			MP3_Exit();
-			break;
-	}
+	if (Mix_GetMusicType(audio) == MUS_MP3)
+		MP3_Exit();
 
 	Mix_FreeMusic(audio);
 	memset(playlist, 0, sizeof(playlist[0][0]) * 512 * 512);
 	count = 0;
+	Mix_CloseAudio();
 	MENU_DEFAULT_STATE = MENU_STATE_HOME;
 }

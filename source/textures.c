@@ -12,6 +12,7 @@ void Textures_Load(void) {
 	SDL_LoadImage(&icon_file, "romfs:/res/drawable/ic_fso_default.png");
 	SDL_LoadImage(&icon_image, "romfs:/res/drawable/ic_fso_type_image.png");
 	SDL_LoadImage(&icon_text, "romfs:/res/drawable/ic_fso_type_text.png");
+	SDL_LoadImage(&icon_video, "romfs:/res/drawable/ic_fso_type_video.png");
 	SDL_LoadImage(&icon_check, "romfs:/res/drawable/btn_material_light_check_on_normal.png");
 	SDL_LoadImage(&icon_check_dark, "romfs:/res/drawable/btn_material_light_check_on_normal_dark.png");
 	SDL_LoadImage(&icon_uncheck, "romfs:/res/drawable/btn_material_light_check_off_normal.png");
@@ -26,9 +27,11 @@ void Textures_Load(void) {
 	SDL_LoadImage(&icon_settings, "romfs:/res/drawable/ic_material_light_settings.png");
 	SDL_LoadImage(&icon_sd, "romfs:/res/drawable/ic_material_light_sdcard.png");
 	SDL_LoadImage(&icon_secure, "romfs:/res/drawable/ic_material_light_secure.png");
+	SDL_LoadImage(&icon_ftp, "romfs:/res/drawable/ic_material_light_remote.png");
 	SDL_LoadImage(&icon_settings_dark, "romfs:/res/drawable/ic_material_light_settings_dark.png");
 	SDL_LoadImage(&icon_sd_dark, "romfs:/res/drawable/ic_material_light_sdcard_dark.png");
 	SDL_LoadImage(&icon_secure_dark, "romfs:/res/drawable/ic_material_light_secure_dark.png");
+	SDL_LoadImage(&icon_ftp_dark, "romfs:/res/drawable/ic_material_light_remote_dark.png");
 	SDL_LoadImage(&icon_radio_off, "romfs:/res/drawable/btn_material_light_radio_off_normal.png");
 	SDL_LoadImage(&icon_radio_on, "romfs:/res/drawable/btn_material_light_radio_on_normal.png");
 	SDL_LoadImage(&icon_radio_dark_off, "romfs:/res/drawable/btn_material_light_radio_off_normal_dark.png");
@@ -113,9 +116,11 @@ void Textures_Free(void) {
 	SDL_DestroyTexture(icon_radio_dark_off);
 	SDL_DestroyTexture(icon_radio_on);
 	SDL_DestroyTexture(icon_radio_off);
+	SDL_DestroyTexture(icon_ftp_dark);
 	SDL_DestroyTexture(icon_secure_dark);
 	SDL_DestroyTexture(icon_sd_dark);
 	SDL_DestroyTexture(icon_settings_dark);
+	SDL_DestroyTexture(icon_ftp);
 	SDL_DestroyTexture(icon_secure);
 	SDL_DestroyTexture(icon_sd);
 	SDL_DestroyTexture(icon_settings);
@@ -130,6 +135,7 @@ void Textures_Free(void) {
 	SDL_DestroyTexture(icon_uncheck);
 	SDL_DestroyTexture(icon_check_dark);
 	SDL_DestroyTexture(icon_check);
+	SDL_DestroyTexture(icon_video);
 	SDL_DestroyTexture(icon_text);
 	SDL_DestroyTexture(icon_image);
 	SDL_DestroyTexture(icon_file);

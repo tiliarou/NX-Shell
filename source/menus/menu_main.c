@@ -17,15 +17,7 @@
 #define MENUBAR_X_BOUNDARY  0
 static int menubar_selection = 0, horizantal_selection = 0, menubar_max_items = 4;
 static float menubar_x = -400.0;
-static char multi_select_dir_old[512];
-
-static char *user_partitions[] = {
-	"SD",
-	"kPRODINFOF",
-	"kSAFE",
-	"kSYSTEM",
-	"kUSER"
-};
+static char multi_select_dir_old[FS_MAX_PATH];
 
 void AnimateMenuBar(float delta_time) {
 	menubar_x += 1 * delta_time;
@@ -35,65 +27,56 @@ void AnimateMenuBar(float delta_time) {
 }
 
 static void Mount_SD(void) {
-	if (BROWSE_STATE != STATE_SD)
-		fsdevUnmountDevice(user_partitions[BROWSE_STATE]);
-
+	fs = fsdevGetDefaultFileSystem();
 	BROWSE_STATE = STATE_SD;
-	total_storage = Utils_GetTotalStorage(FsStorageId_SdCard);
-	used_storage = Utils_GetUsedStorage(FsStorageId_SdCard);
+
+	total_storage = Utils_GetTotalStorage(fs);
+	used_storage = Utils_GetUsedStorage(fs);
 
 	Config_GetLastDirectory();
 	Dirbrowse_PopulateFiles(true);
 }
 
 static void Mount_Prodinfof(void) {
-	if (BROWSE_STATE != STATE_SD)
-		fsdevUnmountDevice(user_partitions[BROWSE_STATE]);
-
+	fs = &prodinfo_fs;
 	BROWSE_STATE = STATE_PRODINFOF;
 
-	FS_OpenBisFileSystem(&user_fs, 28, "");
-	fsdevMountDevice("kPRODINFOF", user_fs);
+	total_storage = Utils_GetTotalStorage(fs);
+	used_storage = Utils_GetUsedStorage(fs);
+
 	strcpy(cwd, ROOT_PATH);
 	Dirbrowse_PopulateFiles(true);
 }
 
 static void Mount_Safe(void) {
-	if (BROWSE_STATE != STATE_SD)
-		fsdevUnmountDevice(user_partitions[BROWSE_STATE]);
-
+	fs = &safe_fs;
 	BROWSE_STATE = STATE_SAFE;
 
-	FS_OpenBisFileSystem(&user_fs, 29, "");
-	fsdevMountDevice("kSAFE", user_fs);
+	total_storage = Utils_GetTotalStorage(fs);
+	used_storage = Utils_GetUsedStorage(fs);
+
 	strcpy(cwd, ROOT_PATH);
 	Dirbrowse_PopulateFiles(true);
 }
 
 static void Mount_System(void) {
-	if (BROWSE_STATE != STATE_SD)
-		fsdevUnmountDevice(user_partitions[BROWSE_STATE]);
-
+	fs = &system_fs;
 	BROWSE_STATE = STATE_SYSTEM;
-	total_storage = Utils_GetTotalStorage(FsStorageId_NandSystem);
-	used_storage = Utils_GetUsedStorage(FsStorageId_NandSystem);
 
-	FS_OpenBisFileSystem(&user_fs, 31, "");
-	fsdevMountDevice("kSYSTEM", user_fs);
+	total_storage = Utils_GetTotalStorage(fs);
+	used_storage = Utils_GetUsedStorage(fs);
+
 	strcpy(cwd, ROOT_PATH);
 	Dirbrowse_PopulateFiles(true);
 }
 
 static void Mount_User(void) {
-	if (BROWSE_STATE != STATE_SD)
-		fsdevUnmountDevice(user_partitions[BROWSE_STATE]);
-	
+	fs = &user_fs;
 	BROWSE_STATE = STATE_USER;
-	total_storage = Utils_GetTotalStorage(FsStorageId_NandUser);
-	used_storage = Utils_GetUsedStorage(FsStorageId_NandUser);
 
-	FS_OpenBisFileSystem(&user_fs, 30, "");
-	fsdevMountDevice("kUSER", user_fs);
+	total_storage = Utils_GetTotalStorage(fs);
+	used_storage = Utils_GetUsedStorage(fs);
+
 	strcpy(cwd, ROOT_PATH);
 	Dirbrowse_PopulateFiles(true);
 }
@@ -257,7 +240,7 @@ static void Menu_HandleMultiSelect(int position) {
 	if (strcmp(multi_select_dir_old, multi_select_dir) != 0)
 		FileOptions_ResetClipboard();
 
-	char path[512];
+	char path[FS_MAX_PATH];
 	File *file = Dirbrowse_GetFileIndex(position);
 	strcpy(path, cwd);
 	strcpy(path + strlen(path), file->name);

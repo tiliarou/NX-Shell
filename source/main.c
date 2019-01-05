@@ -6,19 +6,20 @@
 
 #include "common.h"
 #include "config.h"
+#include "fs.h"
 #include "menu_main.h"
 #include "SDL_helper.h"
 #include "textures.h"
 #include "utils.h"
 
 static void Term_Services(void) {
+	fsdevUnmountDevice("NX-Shell_USER");
+	fsdevUnmountDevice("NX-Shell_SYSTEM");
+	fsdevUnmountDevice("NX-Shell_SAFE");
+	fsdevUnmountDevice("NX-Shell_PRODINFOF");
+	
 	Textures_Free();
-
-	#ifdef DEBUG
-		socketExit();
-	#endif
-
-	nsExit();
+	
 	usbCommsExit();
 	SDL_HelperTerm();
 	romfsExit();
@@ -28,6 +29,10 @@ static void Term_Services(void) {
 
 static Result Init_Services(void) {
 	Result ret = 0;
+	void *addr;
+	
+	if (R_FAILED(ret = svcSetHeapSize(&addr, 0x10000000)))
+		return ret;
 
 	if (R_FAILED(ret = plInitialize()))
 		return ret;
@@ -44,20 +49,27 @@ static Result Init_Services(void) {
 	if (R_FAILED(ret = usbCommsInitialize()))
 		return ret;
 
-	if (R_FAILED(ret = nsInitialize()))
-		return ret;
-
-	#ifdef DEBUG
-		socketInitializeDefault();
-		nxlinkStdio();
-	#endif
-
 	Textures_Load();
 
 	BROWSE_STATE = STATE_SD;
-	fs = fsdevGetDefaultFileSystem();
-	total_storage = Utils_GetTotalStorage(FsStorageId_SdCard);
-	used_storage = Utils_GetUsedStorage(FsStorageId_SdCard);
+	sdmc_fs = *fsdevGetDefaultFileSystem();
+
+	FS_OpenBisFileSystem(&prodinfo_fs, 28, "");
+	fsdevMountDevice("NX-Shell_PRODINFOF", prodinfo_fs);
+
+	FS_OpenBisFileSystem(&safe_fs, 29, "");
+	fsdevMountDevice("NX-Shell_SAFE", safe_fs);
+
+	FS_OpenBisFileSystem(&system_fs, 31, "");
+	fsdevMountDevice("NX-Shell_SYSTEM", system_fs);
+
+	FS_OpenBisFileSystem(&user_fs, 30, "");
+	fsdevMountDevice("NX-Shell_USER", user_fs);
+
+	fs = &sdmc_fs;
+
+	total_storage = Utils_GetTotalStorage(fs);
+	used_storage = Utils_GetUsedStorage(fs);
 
 	Config_Load();
 	Config_GetLastDirectory();

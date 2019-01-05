@@ -23,7 +23,7 @@ Result Config_Save(nxshell_config_t config) {
 	char *buf = (char *)malloc(64);
 	snprintf(buf, 64, configFile, CONFIG_VERSION, config.dark_theme, config.dev_options, config.sort);
 
-	if (R_FAILED(ret = FS_Write("/switch/NX-Shell/config.cfg", buf))) {
+	if (R_FAILED(ret = FS_Write(fs, "/switch/NX-Shell/config.cfg", buf))) {
 		free(buf);
 		return ret;
 	}
@@ -35,12 +35,12 @@ Result Config_Save(nxshell_config_t config) {
 Result Config_Load(void) {
 	Result ret = 0;
 
-	if (!FS_DirExists("/switch/"))
-		FS_MakeDir("/switch");
-	if (!FS_DirExists("/switch/NX-Shell/"))
-		FS_MakeDir("/switch/NX-Shell");
+	if (!FS_DirExists(fs, "/switch/"))
+		FS_MakeDir(fs, "/switch");
+	if (!FS_DirExists(fs, "/switch/NX-Shell/"))
+		FS_MakeDir(fs, "/switch/NX-Shell");
 
-	if (!FS_FileExists("/switch/NX-Shell/config.cfg")) {
+	if (!FS_FileExists(fs, "/switch/NX-Shell/config.cfg")) {
 		config.dark_theme = false;
 		config.dev_options = false;
 		config.sort = 0;
@@ -48,10 +48,10 @@ Result Config_Load(void) {
 	}
 
 	u64 size = 0;
-	FS_GetFileSize("/switch/NX-Shell/config.cfg", &size);
+	FS_GetFileSize(fs, "/switch/NX-Shell/config.cfg", &size);
 	char *buf = (char *)malloc(size + 1);
 
-	if (R_FAILED(ret = FS_Read("/switch/NX-Shell/config.cfg", size, buf))) {
+	if (R_FAILED(ret = FS_Read(fs, "/switch/NX-Shell/config.cfg", size, buf))) {
 		free(buf);
 		return ret;
 	}
@@ -62,7 +62,7 @@ Result Config_Load(void) {
 
 	// Delete config file if config file is updated. This will rarely happen.
 	if (config_version_holder  < CONFIG_VERSION) {
-		FS_RemoveFile("/switch/NX-Shell/config.cfg");
+		FS_RemoveFile(fs, "/switch/NX-Shell/config.cfg");
 		config.dark_theme = false;
 		config.dev_options = false;
 		config.sort = 0;
@@ -75,8 +75,8 @@ Result Config_Load(void) {
 Result Config_GetLastDirectory(void) {
 	Result ret = 0;
 
-	if (!FS_FileExists("/switch/NX-Shell/lastdir.txt")) {
-		if (R_FAILED(ret = FS_Write("/switch/NX-Shell/lastdir.txt", START_PATH))) {
+	if (!FS_FileExists(fs, "/switch/NX-Shell/lastdir.txt")) {
+		if (R_FAILED(ret = FS_Write(fs, "/switch/NX-Shell/lastdir.txt", START_PATH))) {
 			strcpy(cwd, START_PATH); // Set Start Path to "sdmc:/" if lastdir.txt hasn't been created.
 			return ret;
 		}
@@ -85,19 +85,19 @@ Result Config_GetLastDirectory(void) {
 	}
 	else {
 		u64 size = 0;
-		FS_GetFileSize("/switch/NX-Shell/lastdir.txt", &size);
+		FS_GetFileSize(fs, "/switch/NX-Shell/lastdir.txt", &size);
 		char *buf = (char *)malloc(size + 1);
 
-		if (R_FAILED(ret = FS_Read("/switch/NX-Shell/lastdir.txt", size, buf))) {
+		if (R_FAILED(ret = FS_Read(fs, "/switch/NX-Shell/lastdir.txt", size, buf))) {
 			free(buf);
 			return ret;
 		}
 
 		buf[size] = '\0';
-		char temp_path[513];
+		char temp_path[FS_MAX_PATH];
 		sscanf(buf, "%[^\n]s", temp_path);
 
-		if (FS_DirExists(temp_path)) // Incase a directory previously visited had been deleted, set start path to sdmc:/ to avoid errors.
+		if (FS_DirExists(fs, temp_path)) // Incase a directory previously visited had been deleted, set start path to sdmc:/ to avoid errors.
 			strcpy(cwd, temp_path);
 		else
 			strcpy(cwd, START_PATH);
